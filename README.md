@@ -31,6 +31,6 @@ known security vulnerabilities (MITRE CWE Top 25).
 - `scripts/` — experiment pipeline
 - `docs/` — model versions, decision log, notes
 
-## Status
 
-🚧 In progress — pilot phase
+
+
