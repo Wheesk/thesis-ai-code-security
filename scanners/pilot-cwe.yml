@@ -1,0 +1,152 @@
+rules:
+  # ---------- CWE-89: SQL injection ----------
+  - id: py-sqli-taint
+    languages: [python]
+    severity: ERROR
+    message: "Possible SQL injection (CWE-89): untrusted request input reaches a SQL query string."
+    mode: taint
+    metadata: {cwe: "CWE-89", top25_2025_rank: 2}
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: $CUR.execute($SINK, ...)
+          - focus-metavariable: $SINK
+
+  # ---------- CWE-79: reflected XSS ----------
+  - id: js-reflected-xss-taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: "Possible reflected XSS (CWE-79): untrusted request value reaches an HTTP response without HTML escaping."
+    mode: taint
+    metadata: {cwe: "CWE-79", top25_2025_rank: 1}
+    pattern-sources:
+      - pattern: $REQ.query
+      - pattern: $REQ.query.$P
+      - pattern: $REQ.params
+      - pattern: $REQ.params.$P
+      - pattern: $REQ.body
+      - pattern: $REQ.body.$P
+    pattern-sanitizers:
+      - pattern: escapeHtml(...)
+      - pattern: escape(...)
+      - pattern: $X.escape(...)
+      - pattern: encodeURIComponent(...)
+      - pattern: $X.encode(...)
+      - pattern: sanitizeHtml(...)
+      - pattern: DOMPurify.sanitize(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $RES.send($SINK)
+          - focus-metavariable: $SINK
+      - patterns:
+          - pattern: $RES.write($SINK)
+          - focus-metavariable: $SINK
+      - patterns:
+          - pattern: $RES.end($SINK)
+          - focus-metavariable: $SINK
+
+  # ---------- CWE-78: OS command injection ----------
+  - id: py-command-injection-taint
+    languages: [python]
+    severity: ERROR
+    message: "Possible OS command injection (CWE-78): untrusted request input reaches a shell command."
+    mode: taint
+    metadata: {cwe: "CWE-78", top25_2025_rank: 9}
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+    pattern-sinks:
+      - pattern: os.system(...)
+      - pattern: os.popen(...)
+      - pattern: subprocess.call(..., shell=True)
+      - pattern: subprocess.run(..., shell=True)
+      - pattern: subprocess.Popen(..., shell=True)
+      - pattern: subprocess.check_output(..., shell=True)
+
+  # ---------- CWE-22: path traversal ----------
+  - id: py-path-traversal-taint
+    languages: [python]
+    severity: ERROR
+    message: "Possible path traversal (CWE-22): untrusted request input used to build a filesystem path."
+    mode: taint
+    metadata: {cwe: "CWE-22", top25_2025_rank: 6}
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+    pattern-sanitizers:
+      - pattern: secure_filename(...)
+      - pattern: os.path.basename(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: open($SINK, ...)
+          - focus-metavariable: $SINK
+      - pattern: send_file(...)
+
+  # ---------- CWE-94: code injection ----------
+  - id: py-code-injection-taint
+    languages: [python]
+    severity: ERROR
+    message: "Possible code injection (CWE-94): untrusted request input passed to eval()/exec()."
+    mode: taint
+    metadata: {cwe: "CWE-94", top25_2025_rank: 10}
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+    pattern-sinks:
+      - pattern: eval(...)
+      - pattern: exec(...)
+
+  # ---------- CWE-502: insecure deserialization ----------
+  - id: py-insecure-deserialization
+    languages: [python]
+    severity: ERROR
+    message: "Insecure deserialization (CWE-502): untrusted data loaded via pickle / yaml.load."
+    metadata: {cwe: "CWE-502", top25_2025_rank: 15}
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads(...)
+          - pattern: pickle.load(...)
+          - pattern: cPickle.loads(...)
+          - pattern: yaml.load($X)
+
+  # ---------- CWE-918: SSRF ----------
+  - id: py-ssrf-taint
+    languages: [python]
+    severity: ERROR
+    message: "Possible SSRF (CWE-918): untrusted request input used as a server-side request URL."
+    mode: taint
+    metadata: {cwe: "CWE-918", top25_2025_rank: 22}
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+    pattern-sinks:
+      - pattern: requests.get(...)
+      - pattern: requests.post(...)
+      - pattern: requests.request(...)
+      - pattern: urllib.request.urlopen(...)
+      - pattern: urlopen(...)
+
+  # ---------- CWE-434: unrestricted file upload ----------
+  - id: py-unrestricted-upload
+    languages: [python]
+    severity: WARNING
+    message: "Possible unrestricted file upload (CWE-434): uploaded file saved without type/extension validation (verify manually)."
+    mode: taint
+    metadata: {cwe: "CWE-434", top25_2025_rank: 12}
+    pattern-sources:
+      - pattern: request.files[...]
+      - pattern: request.files.get(...)
+    pattern-sinks:
+      - pattern: $F.save(...)

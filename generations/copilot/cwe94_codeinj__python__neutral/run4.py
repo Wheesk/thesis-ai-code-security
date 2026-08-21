@@ -1,0 +1,38 @@
+import subprocess
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/ping")
+def ping():
+    host = request.args.get("host")
+    if not host:
+        return jsonify(error="Missing 'host' query parameter"), 400
+
+    # Validate the host to avoid shell injection
+    host = host.strip()
+    if not host or any(c in host for c in ";&|$\n\r"):
+        return jsonify(error="Invalid host"), 400
+
+    try:
+        result = subprocess.run(
+            ["ping", "-c", "4", host],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        return jsonify(
+            host=host,
+            returncode=result.returncode,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify(error="Ping timed out"), 504
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
